@@ -103,6 +103,63 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
     }
 }
 
+- (BOOL)isShadowToolPresent {
+    // Check for common Shadow tool files or processes
+    NSArray *shadowPaths = @[
+        @"/usr/libexec/shadow",
+        @"/usr/local/bin/shadow",
+        @"/Applications/Shadow.app",
+        @"/Library/MobileSubstrate/DynamicLibraries/Shadow.dylib",
+        @"/Library/MobileSubstrate/DynamicLibraries/ShadowHide.dylib",
+        @"/var/lib/shadow",
+        @"/var/mobile/Library/Preferences/com.shadowapp.shadow.plist",
+        @"/private/var/tmp/shadow.log"
+    ];
+
+    for (NSString *path in shadowPaths) {
+        if (access([path UTF8String], F_OK) != -1) {
+            NSLog(@"Shadow tool detected at path: %@", path);
+            return YES;
+        }
+    }
+
+    // Check for Shadow running processes
+    NSArray *runningProcesses = [self runningProcesses];
+    NSArray *shadowProcesses = @[@"shadow", @"ShadowProcess", @"com.shadowapp.shadow"];
+    for (NSDictionary *process in runningProcesses) {
+        NSString *processName = process[@"ProcessName"];
+        for (NSString *shadowProcess in shadowProcesses) {
+            if ([processName rangeOfString:shadowProcess options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                NSLog(@"Shadow tool process detected: %@", processName);
+                return YES;
+            }
+        }
+    }
+
+    // Check for Shadow tool injected libraries
+    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
+        const char *imageName = _dyld_get_image_name(i);
+        if (strstr(imageName, "Shadow") || strstr(imageName, "shadow")) {
+            NSLog(@"Shadow tool library loaded: %s", imageName);
+            return YES;
+        }
+    }
+
+    // Use system calls to detect process injection
+    struct kinfo_proc info;
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+    size_t size = sizeof(info);
+    sysctl(mib, 4, &info, &size, NULL, 0);
+    if (info.kp_proc.p_flag & P_TRACED) {
+        NSLog(@"Shadow tool detected via process tracing!");
+        return YES;
+    }
+
+
+    NSLog(@"Shadow tool not detected.");
+    return NO; // Shadow tool not detected
+}
+
 
 
 
@@ -111,6 +168,10 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 //NSLog(@"nabil in jailbroken");
 
 #if !(TARGET_IPHONE_SIMULATOR)
+
+    if ([self isShadowToolPresent]) {
+        return YES; // Device is considered jailbroken
+    }
 
     if ([[NSFileManager defaultManager] fileExistsAtPath:@"/Applications/Cydia.app"])
     {
