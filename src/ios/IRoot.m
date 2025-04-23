@@ -15,8 +15,11 @@
 #include <mach-o/dyld.h>
 #include <sys/types.h>
 #include <unistd.h>
-#if !TARGET_IPHONE_SIMULATOR
+#if __has_include(<sys/ptrace.h>)
     #include <sys/ptrace.h>
+    #define HAS_PTRACE 1
+#else
+    #define HAS_PTRACE 0
 #endif
 
 
@@ -1373,7 +1376,7 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 }
 
 + (void)denyDebugger {
-    #if !TARGET_IPHONE_SIMULATOR
+    #if HAS_PTRACE
         ptrace(PT_DENY_ATTACH, 0, 0, 0);
     #endif
     syscall(SYS_ptrace, PT_DENY_ATTACH, 0, 0, 0);
