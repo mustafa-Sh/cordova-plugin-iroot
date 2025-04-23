@@ -14,6 +14,8 @@
 #include <sys/socket.h>
 #include <mach-o/dyld.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <sys/ptrace.h>
 
 
 
@@ -80,10 +82,19 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 
     @try
     {
+        [IRoot denyDebugger]; // prevent debugger attachment
+
+        if ([IRoot isSecurityViolationDetected]) {
+            [self handleSecurityViolation:@"Frida/Objection or instrumentation detected"];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:YES];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            return;
+        }
+
         bool jailbroken = [self jailbroken];
 		//nabil 3
 		bool jailMonkeybroken = [self isJailMonkeyBroken];
-		bool finalJailBroken = jailbroken || jailMonkeybroken;
+        bool finalJailBroken = jailbroken || jailMonkeybroken;
 		
 		//NSLog(TARGET_OS_SIMULATOR ? @" nabil TARGET_OS_SIMULATOR true" : @" nabil TARGET_OS_SIMULATOR false");
 		//NSLog(TARGET_IPHONE_SIMULATOR ? @" nabil TARGET_IPHONE_SIMULATOR true" : @" nabil TARGET_IPHONE_SIMULATOR false");
@@ -160,16 +171,13 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
     return NO; // Shadow tool not detected
 }
 
-
-
-
 - (bool) jailbroken {
 //nabil 2 TARGET_OS_SIMULATOR
 //NSLog(@"nabil in jailbroken");
 
 #if !(TARGET_IPHONE_SIMULATOR)
 
-    if ([self isShadowToolPresent]) {
+	if ([self isShadowToolPresent]) {
         return YES; // Device is considered jailbroken
     }
 
@@ -354,7 +362,7 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
         motzart += 2;
     }
 	
-    if ([self checkFork] != NOTJAIL) {
+	if ([self checkFork] != NOTJAIL) {
         // Frida
         motzart += 2;
     }
@@ -1161,5 +1169,210 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 
 //end nabil provision profile
 
+#pragma mark - Enhanced Runtime Detection for Frida / Objection
+
++ (BOOL)isSecurityViolationDetected {
+    return [self isDebuggerAttached] ||
+           [self isBinaryTampered] ||
+           [self checkDebuggerWithTiming] ||
+           [self isFridaLibLoaded] ||
+           [self isFridaDetected] ||
+           [self isFridaPortOpen] ||
+           [self scanProcessesForMaliciousTools] ||
+           [self isSubstrateLoaded] ||
+           [self checkForSuspiciousSymbols] ||
+           [self checkFileIntegrity] ||
+           [self detectSSLKillSwitch] ||
+           [self checkForHookingFrameworks];
+}
+
++ (BOOL)isDebuggerAttached {
+    // Check via sysctl
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+    struct kinfo_proc info;
+    size_t size = sizeof(info);
+    sysctl(mib, 4, &info, &size, NULL, 0);
+    return (info.kp_proc.p_flag & P_TRACED) != 0;
+}
+
++ (BOOL)isBinaryTampered {
+    const struct mach_header *header = _dyld_get_image_header(0);
+    struct load_command *cmd = (struct load_command *)((char *)header + sizeof(struct mach_header));
+    
+    for (uint32_t i = 0; i < header->ncmds; i++) {
+        if (cmd->cmd == LC_CODE_SIGNATURE) {
+            struct linkedit_data_command *lc = (struct linkedit_data_command *)cmd;
+            void *signature = (char *)header + lc->dataoff;
+            
+            // Simple check - in production you'd verify the signature properly
+            if (lc->datasize < 100) { // Suspiciously small signature
+                return YES;
+            }
+        }
+        cmd = (struct load_command *)((char *)cmd + cmd->cmdsize);
+    }
+    return NO;
+}
+
++ (BOOL)checkDebuggerWithTiming {
+    // Debuggers slow down execution
+    uint64_t start = mach_absolute_time();
+    // Do some meaningless work
+    for (int i = 0; i < 100000; i++) {
+        rand();
+    }
+    uint64_t end = mach_absolute_time();
+    
+    // Convert to nanoseconds
+    mach_timebase_info_data_t timebase;
+    mach_timebase_info(&timebase);
+    uint64_t elapsed = (end - start) * timebase.numer / timebase.denom;
+    
+    // If it took more than 50ms, likely under debugger
+    return elapsed > 50000000;
+}
+
++ (BOOL)isFridaLibLoaded {
+    uint32_t count = _dyld_image_count();
+    for (uint32_t i = 0; i < count; i++) {
+        const char *name = _dyld_get_image_name(i);
+        if (name && (strstr(name, "frida") || strstr(name, "gum-js-loop") || strstr(name, "libfrida"))) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
++ (BOOL)isFridaDetected {
+    // Check for Frida environment variables
+    char *env = getenv("DYLD_INSERT_LIBRARIES");
+    if (env && (strstr(env, "frida") || strstr(env, "gum"))) {
+        return YES;
+    }
+    
+    // Check for Frida thread names
+    mach_msg_type_number_t count;
+    thread_act_array_t list;
+    task_threads(mach_task_self(), &list, &count);
+    for (int i = 0; i < count; i++) {
+        char name[128];
+        pthread_getname_np(pthread_from_mach_thread_np(list[i]), name, sizeof(name));
+        if (strstr(name, "frida") || strstr(name, "gum-js-loop")) {
+            vm_deallocate(mach_task_self(), (vm_address_t)list, count * sizeof(thread_act_t));
+            return YES;
+        }
+    }
+    vm_deallocate(mach_task_self(), (vm_address_t)list, count * sizeof(thread_act_t));
+    
+    return NO;
+}
+
++ (BOOL)isFridaPortOpen {
+    // Common Frida/objection ports plus some randomization
+    int ports[] = {27042, 27043, 4242, 4711, 1337, 31337, 9999};
+    
+    for (int i = 0; i < sizeof(ports)/sizeof(int); i++) {
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        struct sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(ports[i]);
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        
+        int result = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+        close(sock);
+        if (result == 0) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
++ (BOOL)scanProcessesForMaliciousTools {
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
+    size_t size;
+    if (sysctl(mib, 4, NULL, &size, NULL, 0) != 0) return NO;
+
+    struct kinfo_proc *procs = malloc(size);
+    if (procs == NULL) return NO;
+
+    if (sysctl(mib, 4, procs, &size, NULL, 0) != 0) {
+        free(procs);
+        return NO;
+    }
+
+    int count = size / sizeof(struct kinfo_proc);
+    BOOL found = NO;
+
+    for (int i = 0; i < count; i++) {
+        char *name = procs[i].kp_proc.p_comm;
+        if (strstr(name, "frida") || strstr(name, "objection") || strstr(name, "lldb") || strstr(name, "cycript")) {
+            found = YES;
+            break;
+        }
+    }
+
+    free(procs);
+    return found;
+}
+
+
++ (BOOL)isSubstrateLoaded {
+    return (NSClassFromString(@"MSFSP") != nil || NSClassFromString(@"Cydia") != nil || dlopen("/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate", RTLD_NOW) != NULL);
+}
+
++ (BOOL)checkForSuspiciousSymbols {
+    // Check for suspicious symbols that might indicate hooking
+    void *handle = dlopen(NULL, RTLD_GLOBAL | RTLD_NOW);
+    if (dlsym(handle, "MSHookFunction") || dlsym(handle, "MSFindSymbol")) {
+        dlclose(handle);
+        return YES;
+    }
+    dlclose(handle);
+    return NO;
+}
+
++ (BOOL)checkFileIntegrity {
+    // Check if certain system files have been modified
+    struct stat sb;
+    if (stat("/bin/bash", &sb) == 0 || stat("/etc/apt", &sb) == 0) {
+        return YES;
+    }
+    return NO;
+}
+
++ (BOOL)detectSSLKillSwitch {
+    // Check for SSL Kill Switch, a common tool used with Frida
+    return (dlopen("/Library/MobileSubstrate/DynamicLibraries/SSLKillSwitch.dylib", RTLD_NOW) != NULL) ||
+           (dlopen("/Library/MobileSubstrate/DynamicLibraries/SSLKillSwitch2.dylib", RTLD_NOW) != NULL);
+}
+
++ (BOOL)checkForHookingFrameworks {
+    NSArray *suspiciousFrameworks = @[
+        @"/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
+        @"/Library/Frameworks/RevealServer.framework/RevealServer",
+        @"/Library/Frameworks/IntegrityProtection.framework/IntegrityProtection",
+        @"/Library/Frameworks/TweakInject.framework/TweakInject"
+    ];
+    
+    for (NSString *framework in suspiciousFrameworks) {
+        if (dlopen([framework UTF8String], RTLD_NOW) != NULL) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+- (void)handleSecurityViolation:(NSString *)reason {
+    // Log, alert server, or terminate gracefully
+    NSLog(@"Security violation: %@", reason);
+    
+    // Exit in a way that looks like a crash
+    kill(getpid(), SIGKILL);
+}
+
++ (void)denyDebugger {
+    ptrace(PT_DENY_ATTACH, 0, 0, 0);
+    syscall(SYS_ptrace, PT_DENY_ATTACH, 0, 0, 0);
+}
 
 @end
