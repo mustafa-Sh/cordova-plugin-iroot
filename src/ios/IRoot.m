@@ -15,7 +15,9 @@
 #include <mach-o/dyld.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/ptrace.h>
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_MACCATALYST
+    #include <sys/ptrace.h>
+#endif
 
 
 
@@ -1371,7 +1373,9 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 }
 
 + (void)denyDebugger {
-    ptrace(PT_DENY_ATTACH, 0, 0, 0);
+    #if !TARGET_OS_SIMULATOR && !TARGET_OS_MACCATALYST
+        ptrace(PT_DENY_ATTACH, 0, 0, 0);
+    #endif
     syscall(SYS_ptrace, PT_DENY_ATTACH, 0, 0, 0);
 }
 
