@@ -7,14 +7,22 @@
 #import "Cordova/CDV.h"
 #import "Cordova/CDVViewController.h"
 #import "IRoot.h"
+
 #import <sys/stat.h>
 #import <sys/sysctl.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <mach-o/dyld.h>
-#include <sys/types.h>
-#include <unistd.h>
+#import <arpa/inet.h>
+#import <netinet/in.h>
+#import <sys/socket.h>
+#import <sys/types.h>
+#import <unistd.h>
+
+#import <mach-o/dyld.h>
+#import <mach/mach_time.h>
+#import <mach/task.h>
+#import <pthread/pthread.h>
+#import <mach/vm_map.h>
+#import <dlfcn.h>
+
 #if __has_include(<sys/ptrace.h>)
     #include <sys/ptrace.h>
     #define HAS_PTRACE 1
