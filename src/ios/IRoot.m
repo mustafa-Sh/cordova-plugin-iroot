@@ -19,9 +19,12 @@
 #import <mach-o/dyld.h>
 #import <mach/mach_time.h>
 #import <mach/task.h>
+#import <mach/mach_init.h>
+#import <mach/vm_map.h>
 #import <pthread/pthread.h>
 #import <mach/vm_map.h>
 #import <dlfcn.h>
+#import <sys/syscall.h>
 
 #if __has_include(<sys/ptrace.h>)
     #include <sys/ptrace.h>
@@ -1387,7 +1390,9 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
     #if HAS_PTRACE
         ptrace(PT_DENY_ATTACH, 0, 0, 0);
     #endif
-    syscall(SYS_ptrace, PT_DENY_ATTACH, 0, 0, 0);
+    #if defined(SYS_ptrace) && HAS_PTRACE
+        syscall(SYS_ptrace, PT_DENY_ATTACH, 0, 0, 0);
+    #endif
 }
 
 @end
