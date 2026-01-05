@@ -1,8 +1,7 @@
-repositories {
-    maven { url 'https://jitpack.io' }
+repositories{
+    mavenCentral()
 }
+
 dependencies {
-    // Use the 0.1.1 commit hash (from the 0.1.1 release page)
-    implementation 'com.github.scottyab:rootbeer:8e8bc3c'
-    // (replace 8e8bc3c with the full SHA if you prefer)
+    implementation 'com.scottyab:rootbeer-lib:0.1.1'
 }

@@ -1249,11 +1249,26 @@ static NSString * const JMJailBrokenMessageKey = @"jailBrokenMessage";
 }
 
 + (BOOL)isFridaLibLoaded {
+    static const char * const indicators[] = {
+        "frida",              // generic but useful
+        "FridaGadget",        // common gadget name
+        "frida-gadget",       // common gadget library name
+        "libfrida-gadget",    // another common variant
+        "libfrida",           // you already have
+        "gum-js-loop",        // you already have
+        "frida-agent",        // sometimes appears in builds/scripts
+        "re.frida"            // package/org style string sometimes present in paths
+    };
+
     uint32_t count = _dyld_image_count();
     for (uint32_t i = 0; i < count; i++) {
         const char *name = _dyld_get_image_name(i);
-        if (name && (strstr(name, "frida") || strstr(name, "gum-js-loop") || strstr(name, "libfrida"))) {
-            return YES;
+        if (!name) continue;
+
+        for (size_t j = 0; j < (sizeof(indicators) / sizeof(indicators[0])); j++) {
+            if (strstr(name, indicators[j]) != NULL) {
+                return YES;
+            }
         }
     }
     return NO;
