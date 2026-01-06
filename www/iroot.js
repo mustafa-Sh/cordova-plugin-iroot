@@ -96,5 +96,8 @@ module.exports = {
     },
     isRootedWithBusyBoxWithEmulator: function(onSuccess, onError) {
         exec(onSuccess, onError, 'IRoot', 'isRootedWithBusyBoxWithEmulator', []);
+    },
+    detectFrida: function(onSuccess, onError) {
+        exec(onSuccess, onError, 'IRoot', 'detectFrida', []);
     }
 };
