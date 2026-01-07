@@ -99,5 +99,8 @@ module.exports = {
     },
     detectFrida: function(onSuccess, onError) {
         exec(onSuccess, onError, 'IRoot', 'detectFrida', []);
+    },
+    getFridaSignals: function (success, error) {
+        exec(success, error, 'IRoot', 'getFridaSignals', []);
     }
 };

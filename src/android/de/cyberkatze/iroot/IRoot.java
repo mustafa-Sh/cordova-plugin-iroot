@@ -188,6 +188,16 @@ public class IRoot extends CordovaPlugin {
                     }
                 });
                 return true;
+
+            case ACTION_GET_FRIDA_SIGNALS:
+                cordova.getThreadPool().execute(() -> {
+                    try {
+                        callbackContext.success(FridaDetection.getSignals());
+                    } catch (Exception e) {
+                        callbackContext.error(e.getMessage());
+                    }
+                });
+                return true;
             default:
                 cordova.getActivity().runOnUiThread(new Runnable() {
 

@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.Locale;
+import org.json.JSONObject;
 
 public final class FridaDetection {
 
@@ -112,5 +113,15 @@ public final class FridaDetection {
             }
         }
         return false;
+    }
+
+    public static JSONObject getSignals() {
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("maps", hasFridaInProcMaps());
+            obj.put("port", isFridaPortOpen());
+            obj.put("files", hasFridaFiles());
+        } catch (Exception ignored) {}
+        return obj;
     }
 }
