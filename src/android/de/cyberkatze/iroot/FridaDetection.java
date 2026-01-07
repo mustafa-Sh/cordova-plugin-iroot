@@ -12,7 +12,7 @@ public final class FridaDetection {
     private static final int[] FRIDA_PORTS = new int[] { 27042, 27043 };
 
     private static final String[] MAPS_SUSPECT_STRINGS = new String[] {
-            "frida", "gum-js-loop", "gadget", "linjector", "re.frida"
+            "frida", "gum-js-loop", "frida-gadget", "libfrida", "re.frida"
     };
 
     private static final String[] FRIDA_FILES = new String[] {
