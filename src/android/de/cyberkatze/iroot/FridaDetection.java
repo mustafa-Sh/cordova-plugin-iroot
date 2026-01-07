@@ -30,10 +30,12 @@ public final class FridaDetection {
         boolean c2 = isFridaPortOpen();
         boolean c3 = hasFridaFiles();
 
-        LOG.d(Constants.LOG_TAG, String.format(Locale.US,
-                "[FridaDetection] maps:%s port:%s files:%s", c1, c2, c3));
+        LOG.d(Constants.LOG_TAG, "[FridaDetection] c1(hasMaps)=" + c1);
+        LOG.d(Constants.LOG_TAG, "[FridaDetection] c2(portOpen)=" + c2);
+        LOG.d(Constants.LOG_TAG, "[FridaDetection] c3(hasFiles)=" + c3);
 
-        return c1 || c2 || c3;
+        // 2-out-of-3 rule to avoid false positives
+        return (c1 && c2) || (c1 && c3) || (c2 && c3);
     }
 
     private static boolean hasFridaFiles() {
