@@ -23,8 +23,7 @@ public class IRoot extends CordovaPlugin {
     private InternalRootDetection internalRootDetection = new InternalRootDetection();
 
     @Override
-    public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext)
-            throws JSONException {
+    public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
         // throws JSONException
         CordovaActions.Action cordovaAction = CordovaActions.Action.get(action);
 
@@ -177,6 +176,7 @@ public class IRoot extends CordovaPlugin {
                 return true;
             case ACTION_DETECT_FRIDA:
                 cordova.getThreadPool().execute(new Runnable() {
+
                     @Override
                     public void run() {
                         try {
@@ -187,8 +187,8 @@ public class IRoot extends CordovaPlugin {
                         }
                     }
                 });
-                return true;
 
+                return true;
             case ACTION_GET_FRIDA_SIGNALS:
                 cordova.getThreadPool().execute(() -> {
                     try {
@@ -197,14 +197,14 @@ public class IRoot extends CordovaPlugin {
                         callbackContext.error(e.getMessage());
                     }
                 });
+
                 return true;
             default:
                 cordova.getActivity().runOnUiThread(new Runnable() {
 
                     public void run() {
                         LOG.e(Constants.LOG_TAG, ERROR_UNKNOWN_ACTION);
-                        callbackContext
-                                .sendPluginResult(new PluginResult(PluginResult.Status.ERROR, ERROR_UNKNOWN_ACTION));
+                        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, ERROR_UNKNOWN_ACTION));
                     }
                 });
 
@@ -212,52 +212,51 @@ public class IRoot extends CordovaPlugin {
         }
     }
 
-    private PluginResult WhatIsRooted(final JSONArray args, final CallbackContext callbackContext,
-            final String action) {
+
+    private PluginResult WhatIsRooted(final JSONArray args, final CallbackContext callbackContext, final String action) {
         try {
             Context context = this.cordova.getActivity().getApplicationContext();
 
             RootBeer rootBeer = new RootBeer(context);
             boolean WhatisRooted;
             switch (action) {
-                case "detectRootManagementApps":
-                    WhatisRooted = rootBeer.detectRootManagementApps();
-                    break;
-                case "detectPotentiallyDangerousApps":
-                    WhatisRooted = rootBeer.detectPotentiallyDangerousApps();
-                    break;
-                case "detectTestKeys":
-                    WhatisRooted = rootBeer.detectTestKeys();
-                    break;
-                case "checkForBusyBoxBinary":
-                    WhatisRooted = rootBeer.checkForBusyBoxBinary();
-                    break;
-                case "checkForSuBinary":
-                    WhatisRooted = rootBeer.checkForSuBinary();
-                    break;
-                case "checkSuExists":
-                    WhatisRooted = rootBeer.checkSuExists();
-                    break;
-                case "checkForRWPaths":
-                    WhatisRooted = rootBeer.checkForRWPaths();
-                    break;
-                case "checkForDangerousProps":
-                    WhatisRooted = rootBeer.checkForDangerousProps();
-                    break;
-                case "checkForRootNative":
-                    WhatisRooted = rootBeer.checkForRootNative();
-                    break;
-                case "detectRootCloakingApps":
-                    WhatisRooted = rootBeer.detectRootCloakingApps();
-                    break;
-                case "isSelinuxFlagInEnabled":
-                    WhatisRooted = Utils.isSelinuxFlagInEnabled();
-                    break;
-                default:
-                    WhatisRooted = this.internalRootDetection.WhatisRooted(action, context);
+              case "detectRootManagementApps":
+                WhatisRooted = rootBeer.detectRootManagementApps();
+              break;
+              case "detectPotentiallyDangerousApps":
+                WhatisRooted = rootBeer.detectPotentiallyDangerousApps();
+              break;
+              case "detectTestKeys":
+                WhatisRooted = rootBeer.detectTestKeys();
+              break;
+              case "checkForBusyBoxBinary":
+                WhatisRooted = rootBeer.checkForBusyBoxBinary();
+              break;
+              case "checkForSuBinary":
+                WhatisRooted = rootBeer.checkForSuBinary();
+              break;
+              case "checkSuExists":
+                WhatisRooted = rootBeer.checkSuExists();
+              break;
+              case "checkForRWPaths":
+                WhatisRooted = rootBeer.checkForRWPaths();
+              break;
+              case "checkForDangerousProps":
+                WhatisRooted = rootBeer.checkForDangerousProps();
+              break;
+              case "checkForRootNative":
+                WhatisRooted = rootBeer.checkForRootNative();
+              break;
+              case "detectRootCloakingApps":
+                WhatisRooted = rootBeer.detectRootCloakingApps();
+              break;
+              case "isSelinuxFlagInEnabled":
+                WhatisRooted = Utils.isSelinuxFlagInEnabled();
+              break;
+              default: WhatisRooted = this.internalRootDetection.WhatisRooted(action, context);
             }
             boolean toWhatisRooted = WhatisRooted;
-            LOG.e(Constants.LOG_TAG, "[WhatIsRooted] " + action + ": " + toWhatisRooted);
+            LOG.e(Constants.LOG_TAG, "[WhatIsRooted] "+action+": " + toWhatisRooted);
 
             return new PluginResult(Status.OK, toWhatisRooted);
         } catch (Exception error) {
@@ -282,25 +281,26 @@ public class IRoot extends CordovaPlugin {
     /**
      * Check with rootBeer and with internal checks.
      */
-    private PluginResult checkIsRooted(final JSONArray args, final CallbackContext callbackContext) {
-        try {
-            Context context = this.cordova.getActivity().getApplicationContext();
-            RootBeer rootBeer = new RootBeer(context);
+     private PluginResult checkIsRooted(final JSONArray args, final CallbackContext callbackContext) {
+         try {
+             Context context = this.cordova.getActivity().getApplicationContext();
+             RootBeer rootBeer = new RootBeer(context);
 
-            boolean checkRootBeer = rootBeer.isRooted();
-            boolean checkInternal = this.internalRootDetection.isRooted(context);
+             boolean checkRootBeer = rootBeer.isRooted();
+             boolean checkInternal = this.internalRootDetection.isRooted(context);
 
-            LOG.d(Constants.LOG_TAG, "[checkIsRooted] checkRootBeer: " + checkRootBeer);
-            LOG.d(Constants.LOG_TAG, "[checkIsRooted] checkInternal: " + checkInternal);
+             LOG.d(Constants.LOG_TAG, "[checkIsRooted] checkRootBeer: " + checkRootBeer);
+             LOG.d(Constants.LOG_TAG, "[checkIsRooted] checkInternal: " + checkInternal);
 
-            boolean isRooted = checkRootBeer || checkInternal;
-            // boolean isRooted = checkRootBeer;
+             boolean isRooted = checkRootBeer || checkInternal;
+             // boolean isRooted = checkRootBeer;
 
-            return new PluginResult(Status.OK, isRooted);
-        } catch (Exception error) {
-            return Utils.getPluginResultError("checkIsRooted", error);
-        }
-    }
+             return new PluginResult(Status.OK, isRooted);
+         } catch (Exception error) {
+             return Utils.getPluginResultError("checkIsRooted", error);
+         }
+     }
+
 
     /**
      * Check with rootBeer with BusyBox and with internal checks.
@@ -327,32 +327,31 @@ public class IRoot extends CordovaPlugin {
     /**
      * Check with rootBeer and with internal checks and with isRunningOnEmulator
      */
-    private PluginResult checkIsRootedWithEmulator(final JSONArray args, final CallbackContext callbackContext) {
-        try {
-            Context context = this.cordova.getActivity().getApplicationContext();
-            RootBeer rootBeer = new RootBeer(context);
+     private PluginResult checkIsRootedWithEmulator(final JSONArray args, final CallbackContext callbackContext) {
+         try {
+             Context context = this.cordova.getActivity().getApplicationContext();
+             RootBeer rootBeer = new RootBeer(context);
 
-            boolean checkRootBeer = rootBeer.isRooted();
-            boolean checkInternal = this.internalRootDetection.isRootedWithEmulator(context);
+             boolean checkRootBeer = rootBeer.isRooted();
+             boolean checkInternal = this.internalRootDetection.isRootedWithEmulator(context);
 
-            LOG.d(Constants.LOG_TAG, "[checkIsRootedWithEmulator] checkRootBeer: " + checkRootBeer);
-            LOG.d(Constants.LOG_TAG, "[checkIsRootedWithEmulator] checkInternal: " + checkInternal);
+             LOG.d(Constants.LOG_TAG, "[checkIsRootedWithEmulator] checkRootBeer: " + checkRootBeer);
+             LOG.d(Constants.LOG_TAG, "[checkIsRootedWithEmulator] checkInternal: " + checkInternal);
 
-            boolean isRooted = checkRootBeer || checkInternal;
-            // boolean isRooted = checkRootBeer;
+             boolean isRooted = checkRootBeer || checkInternal;
+             // boolean isRooted = checkRootBeer;
 
-            return new PluginResult(Status.OK, isRooted);
-        } catch (Exception error) {
-            return Utils.getPluginResultError("checkIsRootedWithEmulator", error);
-        }
-    }
+             return new PluginResult(Status.OK, isRooted);
+         } catch (Exception error) {
+             return Utils.getPluginResultError("checkIsRootedWithEmulator", error);
+         }
+     }
+
 
     /**
-     * Check with rootBeer with BusyBox and with internal checks and with
-     * isRunningOnEmulator
+     * Check with rootBeer with BusyBox and with internal checks and with isRunningOnEmulator
      */
-    private PluginResult checkIsRootedWithBusyBoxWithEmulator(final JSONArray args,
-            final CallbackContext callbackContext) {
+    private PluginResult checkIsRootedWithBusyBoxWithEmulator(final JSONArray args, final CallbackContext callbackContext) {
         try {
             Context context = this.cordova.getActivity().getApplicationContext();
             RootBeer rootBeer = new RootBeer(context);
