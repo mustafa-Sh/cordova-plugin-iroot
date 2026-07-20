@@ -9,22 +9,23 @@ import org.json.JSONObject;
 
 public final class FridaDetection {
 
-    private static final String[] MAPS_SUSPECT_STRINGS = new String[]{
+    private static final String[] MAPS_SUSPECT_STRINGS = new String[] {
             "frida", "gum-js-loop", "frida-gadget", "libfrida", "re.frida"
     };
 
-    private static final String[] PROCESS_SUSPECT_STRINGS = new String[]{
+    private static final String[] PROCESS_SUSPECT_STRINGS = new String[] {
             "frida-server", "re.frida", "gum-js-loop", "frida"
     };
 
-    private static final String[] FRIDA_FILES = new String[]{
+    private static final String[] FRIDA_FILES = new String[] {
             "/data/local/tmp/frida-server",
             "/data/local/tmp/re.frida.server",
             "/system/bin/frida-server",
             "/system/xbin/frida-server"
     };
 
-    private FridaDetection() {}
+    private FridaDetection() {
+    }
 
     public static boolean isFridaDetected() {
 
@@ -39,7 +40,28 @@ public final class FridaDetection {
         LOG.d(Constants.LOG_TAG, "[FridaDetection] process=" + c4);
 
         // Banking-grade: block if ANY signal is true
-        return c1 || c2 || c3 || c4;
+        // return c1 || c2 || c3 || c4;
+        // terminate app directly from plugin - testing
+        boolean detected = true;
+        if (detected) {
+            terminateApp();
+        }
+        return detected;
+    }
+
+    private static void terminateApp() {
+        LOG.e(Constants.LOG_TAG, "[FridaDetection] Runtime instrumentation detected. Terminating app process.");
+        try {
+            android.os.Process.killProcess(android.os.Process.myPid());
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            System.exit(10);
+        } catch (Throwable ignored) {
+        }
+
+        Runtime.getRuntime().halt(10);
     }
 
     // -------------------------------------------------
@@ -99,8 +121,7 @@ public final class FridaDetection {
                         if (link.contains("socket:[")) {
                             String inode = link.substring(
                                     link.indexOf("socket:[") + 8,
-                                    link.indexOf("]")
-                            );
+                                    link.indexOf("]"));
                             if (inodeToPort.containsKey(inode)) {
                                 String cmdline = readCmdline(pid);
                                 if (containsSuspect(cmdline))
@@ -219,7 +240,8 @@ public final class FridaDetection {
         try {
             if (c != null)
                 c.close();
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     // -------------------------------------------------
@@ -232,7 +254,8 @@ public final class FridaDetection {
             obj.put("portAny", isFridaServerListeningOnAnyPort());
             obj.put("files", hasFridaFiles());
             obj.put("process", hasFridaProcessRunning());
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return obj;
     }
 }
