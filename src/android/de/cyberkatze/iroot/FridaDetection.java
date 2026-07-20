@@ -36,14 +36,8 @@ public final class FridaDetection {
         boolean c3 = hasFridaFiles();
         boolean c4 = hasFridaProcessRunning();
 
-        LOG.d(Constants.LOG_TAG, "[FridaDetection] maps=" + c1);
-        LOG.d(Constants.LOG_TAG, "[FridaDetection] port(any)=" + c2);
-        LOG.d(Constants.LOG_TAG, "[FridaDetection] files=" + c3);
-        LOG.d(Constants.LOG_TAG, "[FridaDetection] process=" + c4);
-
         // Banking-grade: block if ANY signal is true
-        // terminate app directly from plugin - testing
-        boolean detected = true;
+        boolean detected = c1 || c2 || c3 || c4;
         if (detected) {
             closeApp(activity);
 
@@ -261,20 +255,5 @@ public final class FridaDetection {
                 c.close();
         } catch (Throwable ignored) {
         }
-    }
-
-    // -------------------------------------------------
-    // Debug helper
-    // -------------------------------------------------
-    public static JSONObject getSignals() {
-        JSONObject obj = new JSONObject();
-        try {
-            obj.put("maps", hasFridaInProcMaps());
-            obj.put("portAny", isFridaServerListeningOnAnyPort());
-            obj.put("files", hasFridaFiles());
-            obj.put("process", hasFridaProcessRunning());
-        } catch (Exception ignored) {
-        }
-        return obj;
     }
 }
