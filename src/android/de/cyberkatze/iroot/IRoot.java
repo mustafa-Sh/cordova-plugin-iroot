@@ -180,7 +180,7 @@ public class IRoot extends CordovaPlugin {
                     @Override
                     public void run() {
                         try {
-                            boolean detected = FridaDetection.isFridaDetected();
+                            boolean detected = FridaDetection.isFridaDetected(cordova.getActivity());
                             callbackContext.sendPluginResult(new PluginResult(Status.OK, detected));
                         } catch (Exception e) {
                             callbackContext.sendPluginResult(Utils.getPluginResultError("detectFrida", e));

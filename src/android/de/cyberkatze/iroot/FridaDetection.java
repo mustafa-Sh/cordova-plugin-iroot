@@ -29,10 +29,7 @@ public final class FridaDetection {
             "/system/xbin/frida-server"
     };
 
-    private FridaDetection() {
-    }
-
-    public static boolean isFridaDetected() {
+    public static boolean isFridaDetected(final Activity activity) {
 
         boolean c1 = hasFridaInProcMaps();
         boolean c2 = isFridaServerListeningOnAnyPort();
@@ -48,14 +45,20 @@ public final class FridaDetection {
         // terminate app directly from plugin - testing
         boolean detected = true;
         if (detected) {
-            closeApp();
+            closeApp(activity);
 
         }
         return detected;
     }
 
-    private void closeApp() {
-        final Activity activity = this.cordova.getActivity();
+    private static void closeApp(final Activity activity) {
+        LOG.e(Constants.LOG_TAG, "[FridaDetection] Runtime instrumentation detected. Closing application.");
+	
+	if (activity == null) {
+            LOG.e(Constants.LOG_TAG, "[FridaDetection] Activity is null. Killing process.");
+            Process.killProcess(Process.myPid());
+            return;
+        }
 
         activity.runOnUiThread(() -> {
             try {
@@ -64,8 +67,13 @@ public final class FridaDetection {
                 } else {
                     activity.finishAffinity();
                 }
-            } catch (Throwable e) {
-                LOG.e(Constants.LOG_TAG, "Failed to finish activity", e);
+            } catch (Throwable error) {
+                LOG.e(Constants.LOG_TAG, "[FridaDetection] Failed to finish activity", error);
+
+                try {
+                    activity.finish();
+                } catch (Throwable ignored) {
+                }
             }
 
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
