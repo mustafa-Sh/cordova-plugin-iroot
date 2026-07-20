@@ -6,6 +6,11 @@ import java.io.*;
 import java.util.*;
 
 import org.json.JSONObject;
+import android.app.Activity;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Process;
 
 public final class FridaDetection {
 
@@ -40,28 +45,34 @@ public final class FridaDetection {
         LOG.d(Constants.LOG_TAG, "[FridaDetection] process=" + c4);
 
         // Banking-grade: block if ANY signal is true
-        // return c1 || c2 || c3 || c4;
         // terminate app directly from plugin - testing
         boolean detected = true;
         if (detected) {
-            terminateApp();
+            closeApp();
+
         }
         return detected;
     }
 
-    private static void terminateApp() {
-        LOG.e(Constants.LOG_TAG, "[FridaDetection] Runtime instrumentation detected. Terminating app process.");
-        try {
-            android.os.Process.killProcess(android.os.Process.myPid());
-        } catch (Throwable ignored) {
-        }
+    private void closeApp() {
+        final Activity activity = this.cordova.getActivity();
 
-        try {
-            System.exit(10);
-        } catch (Throwable ignored) {
-        }
+        activity.runOnUiThread(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    activity.finishAndRemoveTask();
+                } else {
+                    activity.finishAffinity();
+                }
+            } catch (Throwable e) {
+                LOG.e(Constants.LOG_TAG, "Failed to finish activity", e);
+            }
 
-        Runtime.getRuntime().halt(10);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                Process.killProcess(Process.myPid());
+                System.exit(10);
+            }, 100);
+        });
     }
 
     // -------------------------------------------------
