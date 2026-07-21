@@ -5,7 +5,6 @@ import org.apache.cordova.LOG;
 import java.io.*;
 import java.util.*;
 
-import org.json.JSONObject;
 import android.app.Activity;
 import android.os.Build;
 import android.os.Handler;
@@ -15,11 +14,15 @@ import android.os.Process;
 public final class FridaDetection {
 
     private static final String[] MAPS_SUSPECT_STRINGS = new String[] {
-            "frida", "gum-js-loop", "frida-gadget", "libfrida", "re.frida"
+            "frida", "gum-js-loop", "frida-gadget", "libfrida", "re.frida", "frida-agent", "linjector", "memfd:frida"
     };
 
     private static final String[] PROCESS_SUSPECT_STRINGS = new String[] {
-            "frida-server", "re.frida", "gum-js-loop", "frida"
+            "frida-server", "re.frida", "gum-js-loop", "frida", "objection"
+    };
+
+    private static final String[] THREAD_SUSPECT_STRINGS = new String[] {
+      "frida","gum-js-loop","pool-frida","linjector"
     };
 
     private static final String[] FRIDA_FILES = new String[] {
@@ -35,9 +38,12 @@ public final class FridaDetection {
         boolean c2 = isFridaServerListeningOnAnyPort();
         boolean c3 = hasFridaFiles();
         boolean c4 = hasFridaProcessRunning();
+	boolean c5 = hasTracerPid();
+        boolean c6 = hasSuspiciousThreads();
+        boolean c7 = hasSuspiciousOpenFileDescriptors();
 
         // Banking-grade: block if ANY signal is true
-        boolean detected = c1 || c2 || c3 || c4;
+        boolean detected = c1 || c2 || c3 || c4 || c5 || c6 || c7;
         if (detected) {
             closeApp(activity);
 
@@ -226,10 +232,91 @@ public final class FridaDetection {
         return false;
     }
 
+    // -------------------------------------------------
+    // 5) Check whether this app process is being traced
+    // -------------------------------------------------
+    private static boolean hasTracerPid() {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader("/proc/self/status"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (!line.startsWith("TracerPid:"))
+                    continue;
+
+                String tracerPid = line.substring("TracerPid:".length()).trim();
+                return !"0".equals(tracerPid);
+            }
+        } catch (Throwable ignored) {
+        } finally {
+            closeQuietly(br);
+        }
+        return false;
+    }
+
+    // -------------------------------------------------
+    // 6) Check suspicious thread names inside this app
+    // -------------------------------------------------
+    private static boolean hasSuspiciousThreads() {
+        try {
+            File taskDir = new File("/proc/self/task");
+            File[] taskFiles = taskDir.listFiles();
+            if (taskFiles == null)
+                return false;
+
+            for (File taskFile : taskFiles) {
+                String threadName = readFirstLine(new File(taskFile, "comm"));
+                if (containsThreadSuspect(threadName))
+                    return true;
+
+                String threadStatus = readFirstLine(new File(taskFile, "status"));
+                if (containsThreadSuspect(threadStatus))
+                    return true;
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
+    // -------------------------------------------------
+    // 7) Check open file descriptors for injected artifacts
+    // -------------------------------------------------
+    private static boolean hasSuspiciousOpenFileDescriptors() {
+        try {
+            File fdDir = new File("/proc/self/fd");
+            File[] fdFiles = fdDir.listFiles();
+            if (fdFiles == null)
+                return false;
+
+            for (File fd : fdFiles) {
+                try {
+                    String link = fd.getCanonicalPath();
+                    if (containsSuspect(link) || containsMapSuspect(link))
+                        return true;
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
     private static String readCmdline(String pid) {
         BufferedReader br = null;
         try {
             br = new BufferedReader(new FileReader("/proc/" + pid + "/cmdline"));
+            return br.readLine();
+        } catch (Throwable ignored) {
+        } finally {
+            closeQuietly(br);
+        }
+        return "";
+    }
+
+    private static String readFirstLine(File file) {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
             return br.readLine();
         } catch (Throwable ignored) {
         } finally {
@@ -243,6 +330,28 @@ public final class FridaDetection {
             return false;
         String lower = value.toLowerCase(Locale.US);
         for (String s : PROCESS_SUSPECT_STRINGS) {
+            if (lower.contains(s))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean containsMapSuspect(String value) {
+        if (value == null)
+            return false;
+        String lower = value.toLowerCase(Locale.US);
+        for (String s : MAPS_SUSPECT_STRINGS) {
+            if (lower.contains(s))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean containsThreadSuspect(String value) {
+        if (value == null)
+            return false;
+        String lower = value.toLowerCase(Locale.US);
+        for (String s : THREAD_SUSPECT_STRINGS) {
             if (lower.contains(s))
                 return true;
         }
