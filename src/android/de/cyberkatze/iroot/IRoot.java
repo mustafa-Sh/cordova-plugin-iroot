@@ -1,8 +1,6 @@
 package de.cyberkatze.iroot;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.HandlerThread;
 
 import com.scottyab.rootbeer.RootBeer;
 
@@ -21,18 +19,8 @@ import org.json.JSONException;
 public class IRoot extends CordovaPlugin {
 
     private final String ERROR_UNKNOWN_ACTION = "Unknown action";
-    private static final long FRIDA_MONITOR_INTERVAL_MS = 15000;
 
     private InternalRootDetection internalRootDetection = new InternalRootDetection();
-    private HandlerThread fridaMonitorThread;
-    private Handler fridaMonitorHandler;
-    private Runnable fridaMonitorRunnable;
-
-    @Override
-    protected void pluginInitialize() {
-        super.pluginInitialize();
-        startFridaMonitor();
-    }
 
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -194,10 +182,6 @@ public class IRoot extends CordovaPlugin {
                         try {
                             boolean detected = FridaDetection.isFridaDetected(cordova.getActivity());
                             callbackContext.sendPluginResult(new PluginResult(Status.OK, detected));
-                            if (detected) {
-                                stopFridaMonitor();
-                                return;
-                            }
                         } catch (Exception e) {
                             callbackContext.sendPluginResult(Utils.getPluginResultError("detectFrida", e));
                         }
@@ -217,81 +201,6 @@ public class IRoot extends CordovaPlugin {
                 return false;
         }
     }
-
-    private synchronized void startFridaMonitor() {
-        if (fridaMonitorHandler != null) {
-            return;
-        }
-
-        fridaMonitorThread = new HandlerThread("IRoot-FridaMonitor");
-        fridaMonitorThread.start();
-        fridaMonitorHandler = new Handler(fridaMonitorThread.getLooper());
-        fridaMonitorRunnable = new Runnable() {
-            @Override
-            public void run() {
-                boolean detected = runFridaDetection("Native monitor");
-                if (detected) {
-                    stopFridaMonitor();
-                    return;
-                }
-
-                Handler handler = fridaMonitorHandler;
-                if (handler != null) {
-                    handler.postDelayed(this, FRIDA_MONITOR_INTERVAL_MS);
-                }
-            }
-        };
-
-        fridaMonitorHandler.post(fridaMonitorRunnable);
-    }
-
-    private synchronized void stopFridaMonitor() {
-        Handler handler = fridaMonitorHandler;
-        Runnable runnable = fridaMonitorRunnable;
-        HandlerThread thread = fridaMonitorThread;
-    
-        fridaMonitorRunnable = null;
-        fridaMonitorHandler = null;
-        fridaMonitorThread = null;
-    
-        if (handler != null && runnable != null) {
-            handler.removeCallbacks(runnable);
-        }
-    
-        if (thread != null) {
-            thread.quitSafely();
-        }
-    }
-
-    private boolean runFridaDetection(final String source) {
-        try {
-            if (cordova != null && cordova.getActivity() != null) {
-                return FridaDetection.isFridaDetected(cordova.getActivity());
-            }
-        } catch (Throwable error) {
-            LOG.e(Constants.LOG_TAG, "[FridaDetection] " + source + " error", error);
-        }
-        return false;
-    }
-
-    @Override
-    public void onResume(boolean multitasking) {
-        super.onResume(multitasking);
-        startFridaMonitor();
-    }
-
-    @Override
-    public void onPause(boolean multitasking) {
-        stopFridaMonitor();
-        super.onPause(multitasking);
-    }
-
-    @Override
-    public void onDestroy() {
-        stopFridaMonitor();
-        super.onDestroy();
-    }
-
 
     private PluginResult WhatIsRooted(final JSONArray args, final CallbackContext callbackContext, final String action) {
         try {
