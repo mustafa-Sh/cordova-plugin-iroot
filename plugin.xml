@@ -50,6 +50,11 @@
         <source-file src="src/android/de/cyberkatze/iroot/IRoot.java" target-dir="src/de/cyberkatze/iroot"/>
         <source-file src="src/android/de/cyberkatze/iroot/Utils.java" target-dir="src/de/cyberkatze/iroot"/>
         <source-file src="src/android/de/cyberkatze/iroot/FridaDetection.java" target-dir="src/de/cyberkatze/iroot"/>
+	<source-file src="src/android/de/cyberkatze/iroot/NativeSecurity.java" target-dir="src/de/cyberkatze/iroot"/>
+        <source-file src="src/android/cpp/CMakeLists.txt" target-dir="src/main/cpp/iroot"/>
+        <source-file src="src/android/cpp/native_security.cpp" target-dir="src/main/cpp/iroot"/>
+        <source-file src="src/android/cpp/runtime_checks.cpp" target-dir="src/main/cpp/iroot"/>
+        <source-file src="src/android/cpp/runtime_checks.h" target-dir="src/main/cpp/iroot"/>
 
         <framework custom="true" src="src/android/build-extras.gradle" type="gradleReference"/>
     </platform>
