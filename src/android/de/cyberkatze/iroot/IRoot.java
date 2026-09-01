@@ -31,8 +31,33 @@ public class IRoot extends CordovaPlugin {
     @Override
     protected void pluginInitialize() {
         super.pluginInitialize();
+
+        try {
+            boolean nativeAvailable = NativeSecurity.isAvailable();
+
+            LOG.d(
+                Constants.LOG_TAG,
+                "[NativeSecurity] available = " + nativeAvailable
+            );
+
+            if (nativeAvailable) {
+                boolean nativeResult = NativeSecurity.checkRuntime();
+
+                LOG.d(
+                    Constants.LOG_TAG,
+                    "[NativeSecurity] checkRuntime result = " + nativeResult
+                );
+            }
+        } catch (Throwable error) {
+            LOG.e(
+                Constants.LOG_TAG,
+                "[NativeSecurity] JNI test failed",
+                error
+            );
+        }
+
         startFridaMonitor();
-    }
+     }
 
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
