@@ -10,10 +10,15 @@ public final class NativeSecurity {
 
     static {
         try {
+            LOG.e(TAG, "[NativeSecurity] Loading libirootsecurity.so");
+
             System.loadLibrary("irootsecurity");
+
             loaded = true;
+
+            LOG.e(TAG, "[NativeSecurity] libirootsecurity.so loaded successfully");
         } catch (Throwable e) {
-            LOG.e(TAG, "Unable to load native security library", e);
+            LOG.e(TAG, "[NativeSecurity] Unable to load native security library", e);
             loaded = false;
         }
     }

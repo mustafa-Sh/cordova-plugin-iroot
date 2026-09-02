@@ -32,22 +32,28 @@ public class IRoot extends CordovaPlugin {
     protected void pluginInitialize() {
         super.pluginInitialize();
 
+        LOG.e(Constants.LOG_TAG,
+            "[NativeSecurity] ===== pluginInitialize START =====");
+
         try {
+            LOG.e(Constants.LOG_TAG,
+                "[NativeSecurity] About to call isAvailable()");
+
             boolean nativeAvailable = NativeSecurity.isAvailable();
 
-            LOG.d(
-                Constants.LOG_TAG,
-                "[NativeSecurity] available = " + nativeAvailable
-            );
+            LOG.e(Constants.LOG_TAG,
+                "[NativeSecurity] available = " + nativeAvailable);
 
             if (nativeAvailable) {
+                LOG.e(Constants.LOG_TAG,
+                    "[NativeSecurity] About to call checkRuntime()");
+
                 boolean nativeResult = NativeSecurity.checkRuntime();
 
-                LOG.d(
-                    Constants.LOG_TAG,
-                    "[NativeSecurity] checkRuntime result = " + nativeResult
-                );
+                LOG.e(Constants.LOG_TAG,
+                    "[NativeSecurity] checkRuntime result = " + nativeResult);
             }
+
         } catch (Throwable error) {
             LOG.e(
                 Constants.LOG_TAG,
@@ -56,9 +62,14 @@ public class IRoot extends CordovaPlugin {
             );
         }
 
-        startFridaMonitor();
-     }
+        LOG.e(Constants.LOG_TAG,
+            "[NativeSecurity] Starting Frida monitor");
 
+        startFridaMonitor();
+
+        LOG.e(Constants.LOG_TAG,
+            "[NativeSecurity] ===== pluginInitialize END =====");
+    }
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
         // throws JSONException
