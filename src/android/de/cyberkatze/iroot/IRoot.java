@@ -221,13 +221,27 @@ public class IRoot extends CordovaPlugin {
 
                     @Override
                     public void run() {
+                        try {
 
-                        callbackContext.sendPluginResult(
-                            new PluginResult(
-                                Status.OK,
-                                true
-                            )
-                        );
+                            boolean nativeAvailable =
+                                NativeSecurity.isAvailable();
+
+                            callbackContext.sendPluginResult(
+                                new PluginResult(
+                                    Status.OK,
+                                    nativeAvailable
+                                )
+                            );
+
+                        } catch (Throwable e) {
+
+                            callbackContext.sendPluginResult(
+                                new PluginResult(
+                                    Status.OK,
+                                    false
+                                )
+                            );
+                        }
                     }
                 });
 
