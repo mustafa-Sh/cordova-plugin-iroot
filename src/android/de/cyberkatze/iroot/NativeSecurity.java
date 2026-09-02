@@ -1,24 +1,22 @@
 package de.cyberkatze.iroot;
 
-import org.apache.cordova.LOG;
+import android.util.Log;
 
 public final class NativeSecurity {
-
-    private static final String TAG = "IRootNative";
 
     private static boolean loaded = false;
 
     static {
         try {
-            LOG.e(TAG, "[NativeSecurity] Loading libirootsecurity.so");
+            Log.e("IROOT_TEST", "NativeSecurity static block EXECUTED");
 
             System.loadLibrary("irootsecurity");
 
             loaded = true;
 
-            LOG.e(TAG, "[NativeSecurity] libirootsecurity.so loaded successfully");
+            Log.e("IROOT_TEST", "libirootsecurity.so LOADED");
         } catch (Throwable e) {
-            LOG.e(TAG, "[NativeSecurity] Unable to load native security library", e);
+            Log.e("IROOT_TEST", "libirootsecurity.so LOAD FAILED", e);
             loaded = false;
         }
     }

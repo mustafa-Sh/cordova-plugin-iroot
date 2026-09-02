@@ -14,6 +14,7 @@ import org.apache.cordova.PluginResult.Status;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
+import android.util.Log;
 
 /**
  * Detect weather device is rooted or not.
@@ -32,8 +33,7 @@ public class IRoot extends CordovaPlugin {
     protected void pluginInitialize() {
         super.pluginInitialize();
 
-        LOG.e(Constants.LOG_TAG,
-            "[NativeSecurity] ===== pluginInitialize START =====");
+        Log.e("IROOT_TEST", "pluginInitialize EXECUTED");
 
         try {
             LOG.e(Constants.LOG_TAG,
@@ -62,13 +62,7 @@ public class IRoot extends CordovaPlugin {
             );
         }
 
-        LOG.e(Constants.LOG_TAG,
-            "[NativeSecurity] Starting Frida monitor");
-
         startFridaMonitor();
-
-        LOG.e(Constants.LOG_TAG,
-            "[NativeSecurity] ===== pluginInitialize END =====");
     }
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
