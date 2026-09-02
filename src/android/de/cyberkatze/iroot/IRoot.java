@@ -222,14 +222,75 @@ public class IRoot extends CordovaPlugin {
                     @Override
                     public void run() {
                         try {
-                            boolean detected = FridaDetection.isFridaDetected(cordova.getActivity());
-                            callbackContext.sendPluginResult(new PluginResult(Status.OK, detected));
+
+                            Log.e(
+                                "IROOT_TEST",
+                                "ACTION_DETECT_FRIDA EXECUTED"
+                            );
+
+                            boolean nativeDetected = false;
+
+                            if (NativeSecurity.isAvailable()) {
+
+                                Log.e(
+                                    "IROOT_TEST",
+                                    "Calling NativeSecurity.checkRuntime()"
+                                );
+
+                                nativeDetected =
+                                    NativeSecurity.checkRuntime();
+
+                                Log.e(
+                                    "IROOT_TEST",
+                                    "NativeSecurity result = " + nativeDetected
+                                );
+                            } else {
+
+                                Log.e(
+                                    "IROOT_TEST",
+                                    "NativeSecurity NOT AVAILABLE"
+                                );
+                            }
+
+                            boolean javaDetected =
+                                FridaDetection.isFridaDetected(
+                                    cordova.getActivity()
+                                );
+
+                            Log.e(
+                                "IROOT_TEST",
+                                "Java Frida result = " + javaDetected
+                            );
+
+                            boolean detected =
+                                nativeDetected || javaDetected;
+
+                            callbackContext.sendPluginResult(
+                                new PluginResult(
+                                    Status.OK,
+                                    detected
+                                )
+                            );
+
                             if (detected) {
                                 stopFridaMonitor();
                                 return;
                             }
-                        } catch (Exception e) {
-                            callbackContext.sendPluginResult(Utils.getPluginResultError("detectFrida", e));
+
+                        } catch (Throwable e) {
+
+                            Log.e(
+                                "IROOT_TEST",
+                                "ACTION_DETECT_FRIDA FAILED",
+                                e
+                            );
+
+                            callbackContext.sendPluginResult(
+                                Utils.getPluginResultError(
+                                    "detectFrida",
+                                    e
+                                )
+                            );
                         }
                     }
                 });
