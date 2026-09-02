@@ -223,6 +223,8 @@ public class IRoot extends CordovaPlugin {
                     public void run() {
                         try {
 
+                            System.err.println("IROOT_TEST_SYSERR: ACTION_DETECT_FRIDA EXECUTED");
+
                             Log.e(
                                 "IROOT_TEST",
                                 "ACTION_DETECT_FRIDA EXECUTED"
