@@ -223,13 +223,13 @@ public class IRoot extends CordovaPlugin {
                     public void run() {
                         try {
 
-                            boolean nativeAvailable =
-                                NativeSecurity.isAvailable();
+                            boolean nativeResult =
+                                NativeSecurity.checkRuntime();
 
                             callbackContext.sendPluginResult(
                                 new PluginResult(
                                     Status.OK,
-                                    nativeAvailable
+                                    !nativeResult
                                 )
                             );
 
