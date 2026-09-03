@@ -33,34 +33,12 @@ public class IRoot extends CordovaPlugin {
     protected void pluginInitialize() {
         super.pluginInitialize();
 
-        boolean nativeAvailable = NativeSecurity.isAvailable();
-        boolean nativeResult = false;
+        boolean detected =
+            enforceNativeRuntimeSecurity("Plugin initialization");
 
-        if (nativeAvailable) {
-            nativeResult = NativeSecurity.checkRuntime();
+        if (!detected) {
+            startFridaMonitor();
         }
-
-        final boolean finalAvailable = nativeAvailable;
-        final boolean finalResult = nativeResult;
-
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        android.widget.Toast.makeText(
-                            cordova.getActivity(),
-                            "STARTUP native=" + finalAvailable +
-                            " result=" + finalResult,
-                            android.widget.Toast.LENGTH_LONG
-                        ).show();
-                    }
-                }, 1500);
-            }
-        });
-
-        startFridaMonitor();
     }
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -273,9 +251,10 @@ public class IRoot extends CordovaPlugin {
         fridaMonitorRunnable = new Runnable() {
             @Override
             public void run() {
-                boolean detected = runFridaDetection("Native monitor");
+                boolean detected =
+                    enforceNativeRuntimeSecurity("Runtime monitor");
+
                 if (detected) {
-                    stopFridaMonitor();
                     return;
                 }
 
@@ -326,10 +305,78 @@ public class IRoot extends CordovaPlugin {
         }
     }
 
+    private boolean enforceNativeRuntimeSecurity(final String source) {
+        boolean detected = runFridaDetection(source);
+
+        if (detected) {
+            stopFridaMonitor();
+            stopAppForNativeSecurity();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void stopAppForNativeSecurity() {
+        try {
+            if (cordova == null || cordova.getActivity() == null) {
+                android.os.Process.killProcess(
+                    android.os.Process.myPid()
+                );
+                return;
+            }
+
+            final android.app.Activity activity =
+                cordova.getActivity();
+
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >=
+                                android.os.Build.VERSION_CODES.LOLLIPOP) {
+
+                            activity.finishAndRemoveTask();
+
+                        } else {
+                            activity.finishAffinity();
+                        }
+                    } catch (Throwable ignored) {
+                        try {
+                            activity.finish();
+                        } catch (Throwable ignoredAgain) {
+                            // Final process termination below.
+                        }
+                    }
+
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            android.os.Process.killProcess(
+                                android.os.Process.myPid()
+                            );
+                        }
+                    }, 100);
+                }
+            });
+
+        } catch (Throwable ignored) {
+            android.os.Process.killProcess(
+                android.os.Process.myPid()
+            );
+        }
+    }
+
     @Override
     public void onResume(boolean multitasking) {
         super.onResume(multitasking);
-        startFridaMonitor();
+
+        boolean detected =
+            enforceNativeRuntimeSecurity("Application resume");
+
+        if (!detected) {
+            startFridaMonitor();
+        }
     }
 
     @Override
