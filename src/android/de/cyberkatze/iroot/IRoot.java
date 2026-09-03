@@ -223,22 +223,27 @@ public class IRoot extends CordovaPlugin {
                     public void run() {
                         try {
 
-                            boolean nativeResult =
-                                NativeSecurity.checkRuntime();
+                            boolean detected =
+                                runFridaDetection("Cordova action");
 
                             callbackContext.sendPluginResult(
                                 new PluginResult(
                                     Status.OK,
-                                    !nativeResult
+                                    detected
                                 )
                             );
+
+                            if (detected) {
+                                stopFridaMonitor();
+                                return;
+                            }
 
                         } catch (Throwable e) {
 
                             callbackContext.sendPluginResult(
-                                new PluginResult(
-                                    Status.OK,
-                                    false
+                                Utils.getPluginResultError(
+                                    "detectFrida",
+                                    e
                                 )
                             );
                         }
@@ -306,13 +311,21 @@ public class IRoot extends CordovaPlugin {
 
     private boolean runFridaDetection(final String source) {
         try {
-            if (cordova != null && cordova.getActivity() != null) {
-                return FridaDetection.isFridaDetected(cordova.getActivity());
+            if (!NativeSecurity.isAvailable()) {
+                return true; // fail closed
             }
+
+            return NativeSecurity.checkRuntime();
+
         } catch (Throwable error) {
-            LOG.e(Constants.LOG_TAG, "[FridaDetection] " + source + " error", error);
+            LOG.e(
+                Constants.LOG_TAG,
+                "[NativeSecurity] " + source + " error",
+                error
+            );
+
+            return true; // fail closed
         }
-        return false;
     }
 
     @Override
