@@ -29,6 +29,9 @@ public class IRoot extends CordovaPlugin {
     private Handler fridaMonitorHandler;
     private Runnable fridaMonitorRunnable;
 
+    // TEMPORARY - only for Resume test
+    private boolean firstResume = true;
+
     @Override
     protected void pluginInitialize() {
         super.pluginInitialize();
@@ -303,6 +306,7 @@ public class IRoot extends CordovaPlugin {
 
         //     return true; // fail closed
         // }
+        // TEMPORARY - simulate detection only on resume
         if ("Application resume".equals(source)) {
             return true;
         }
@@ -375,6 +379,13 @@ public class IRoot extends CordovaPlugin {
     @Override
     public void onResume(boolean multitasking) {
         super.onResume(multitasking);
+
+        // TEMPORARY - ignore initial startup resume
+        if (firstResume) {
+            firstResume = false;
+            startFridaMonitor();
+            return;
+        }
 
         boolean detected =
             enforceNativeRuntimeSecurity("Application resume");
