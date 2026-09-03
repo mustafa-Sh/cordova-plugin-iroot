@@ -303,7 +303,11 @@ public class IRoot extends CordovaPlugin {
 
         //     return true; // fail closed
         // }
-        return true;
+        if ("Application resume".equals(source)) {
+            return true;
+        }
+
+        return false;
     }
 
     private boolean enforceNativeRuntimeSecurity(final String source) {
