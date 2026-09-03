@@ -33,34 +33,32 @@ public class IRoot extends CordovaPlugin {
     protected void pluginInitialize() {
         super.pluginInitialize();
 
-        Log.e("IROOT_TEST", "pluginInitialize EXECUTED");
+        boolean nativeAvailable = NativeSecurity.isAvailable();
+        boolean nativeResult = false;
 
-        try {
-            LOG.e(Constants.LOG_TAG,
-                "[NativeSecurity] About to call isAvailable()");
-
-            boolean nativeAvailable = NativeSecurity.isAvailable();
-
-            LOG.e(Constants.LOG_TAG,
-                "[NativeSecurity] available = " + nativeAvailable);
-
-            if (nativeAvailable) {
-                LOG.e(Constants.LOG_TAG,
-                    "[NativeSecurity] About to call checkRuntime()");
-
-                boolean nativeResult = NativeSecurity.checkRuntime();
-
-                LOG.e(Constants.LOG_TAG,
-                    "[NativeSecurity] checkRuntime result = " + nativeResult);
-            }
-
-        } catch (Throwable error) {
-            LOG.e(
-                Constants.LOG_TAG,
-                "[NativeSecurity] JNI test failed",
-                error
-            );
+        if (nativeAvailable) {
+            nativeResult = NativeSecurity.checkRuntime();
         }
+
+        final boolean finalAvailable = nativeAvailable;
+        final boolean finalResult = nativeResult;
+
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        android.widget.Toast.makeText(
+                            cordova.getActivity(),
+                            "STARTUP native=" + finalAvailable +
+                            " result=" + finalResult,
+                            android.widget.Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }, 1500);
+            }
+        });
 
         startFridaMonitor();
     }
