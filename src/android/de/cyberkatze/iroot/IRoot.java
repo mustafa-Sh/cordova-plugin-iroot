@@ -287,22 +287,23 @@ public class IRoot extends CordovaPlugin {
     }
 
     private boolean runFridaDetection(final String source) {
-        try {
-            if (!NativeSecurity.isAvailable()) {
-                return true; // fail closed
-            }
+        // try {
+        //     if (!NativeSecurity.isAvailable()) {
+        //         return true; // fail closed
+        //     }
 
-            return NativeSecurity.checkRuntime();
+        //     return NativeSecurity.checkRuntime();
 
-        } catch (Throwable error) {
-            LOG.e(
-                Constants.LOG_TAG,
-                "[NativeSecurity] " + source + " error",
-                error
-            );
+        // } catch (Throwable error) {
+        //     LOG.e(
+        //         Constants.LOG_TAG,
+        //         "[NativeSecurity] " + source + " error",
+        //         error
+        //     );
 
-            return true; // fail closed
-        }
+        //     return true; // fail closed
+        // }
+        return true;
     }
 
     private boolean enforceNativeRuntimeSecurity(final String source) {
