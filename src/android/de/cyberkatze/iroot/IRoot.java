@@ -287,28 +287,22 @@ public class IRoot extends CordovaPlugin {
     }
 
     private boolean runFridaDetection(final String source) {
-        // try {
-        //     if (!NativeSecurity.isAvailable()) {
-        //         return true; // fail closed
-        //     }
+        try {
+            if (!NativeSecurity.isAvailable()) {
+                return true; // fail closed
+            }
 
-        //     return NativeSecurity.checkRuntime();
+            return NativeSecurity.checkRuntime();
 
-        // } catch (Throwable error) {
-        //     LOG.e(
-        //         Constants.LOG_TAG,
-        //         "[NativeSecurity] " + source + " error",
-        //         error
-        //     );
+        } catch (Throwable error) {
+            LOG.e(
+                Constants.LOG_TAG,
+                "[NativeSecurity] " + source + " error",
+                error
+            );
 
-        //     return true; // fail closed
-        // }
-        // TEMPORARY - simulate detection only from runtime monitor
-        if ("Runtime monitor".equals(source)) {
-            return true;
+            return true; // fail closed
         }
-
-        return false;
     }
 
     private boolean enforceNativeRuntimeSecurity(final String source) {
@@ -373,7 +367,7 @@ public class IRoot extends CordovaPlugin {
         }
     }
 
-   @Override
+    @Override
     public void onResume(boolean multitasking) {
         super.onResume(multitasking);
 
