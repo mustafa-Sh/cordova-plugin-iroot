@@ -192,41 +192,6 @@ public class IRoot extends CordovaPlugin {
                 });
 
                 return true;
-            case ACTION_DETECT_FRIDA:
-                cordova.getThreadPool().execute(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-
-                            boolean detected =
-                                runFridaDetection("Cordova action");
-
-                            callbackContext.sendPluginResult(
-                                new PluginResult(
-                                    Status.OK,
-                                    detected
-                                )
-                            );
-
-                            if (detected) {
-                                stopFridaMonitor();
-                                return;
-                            }
-
-                        } catch (Throwable e) {
-
-                            callbackContext.sendPluginResult(
-                                Utils.getPluginResultError(
-                                    "detectFrida",
-                                    e
-                                )
-                            );
-                        }
-                    }
-                });
-
-                return true;
             default:
                 cordova.getActivity().runOnUiThread(new Runnable() {
 
