@@ -14,7 +14,6 @@ import org.apache.cordova.PluginResult.Status;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
-import android.util.Log;
 
 /**
  * Detect weather device is rooted or not.
@@ -22,12 +21,12 @@ import android.util.Log;
 public class IRoot extends CordovaPlugin {
 
     private final String ERROR_UNKNOWN_ACTION = "Unknown action";
-    private static final long FRIDA_MONITOR_INTERVAL_MS = 15000;
+    private static final long RUNTIME_MONITOR_INTERVAL_MS = 15000;
 
     private InternalRootDetection internalRootDetection = new InternalRootDetection();
-    private HandlerThread fridaMonitorThread;
-    private Handler fridaMonitorHandler;
-    private Runnable fridaMonitorRunnable;
+    private HandlerThread runtimeMonitorThread;
+    private Handler runtimeMonitorHandler;
+    private Runnable runtimeMonitorRunnable;
 
     @Override
     protected void pluginInitialize() {
@@ -37,7 +36,7 @@ public class IRoot extends CordovaPlugin {
             enforceNativeRuntimeSecurity("Plugin initialization");
 
         if (!detected) {
-            startFridaMonitor();
+            startRuntimeMonitor();
         }
     }
     @Override
@@ -205,15 +204,15 @@ public class IRoot extends CordovaPlugin {
         }
     }
 
-    private synchronized void startFridaMonitor() {
-        if (fridaMonitorHandler != null) {
+    private synchronized void startRuntimeMonitor() {
+        if (runtimeMonitorHandler != null) {
             return;
         }
 
-        fridaMonitorThread = new HandlerThread("IRoot-SecurityMonitor");
-        fridaMonitorThread.start();
-        fridaMonitorHandler = new Handler(fridaMonitorThread.getLooper());
-        fridaMonitorRunnable = new Runnable() {
+        runtimeMonitorThread = new HandlerThread("IRoot-SecurityMonitor");
+        runtimeMonitorThread.start();
+        runtimeMonitorHandler = new Handler(runtimeMonitorThread.getLooper());
+        runtimeMonitorRunnable = new Runnable() {
             @Override
             public void run() {
                 boolean detected =
@@ -223,24 +222,24 @@ public class IRoot extends CordovaPlugin {
                     return;
                 }
 
-                Handler handler = fridaMonitorHandler;
+                Handler handler = runtimeMonitorHandler;
                 if (handler != null) {
-                    handler.postDelayed(this, FRIDA_MONITOR_INTERVAL_MS);
+                    handler.postDelayed(this, RUNTIME_MONITOR_INTERVAL_MS);
                 }
             }
         };
 
-        fridaMonitorHandler.post(fridaMonitorRunnable);
+        runtimeMonitorHandler.post(runtimeMonitorRunnable);
     }
 
-    private synchronized void stopFridaMonitor() {
-        Handler handler = fridaMonitorHandler;
-        Runnable runnable = fridaMonitorRunnable;
-        HandlerThread thread = fridaMonitorThread;
+    private synchronized void stopRuntimeMonitor() {
+        Handler handler = runtimeMonitorHandler;
+        Runnable runnable = runtimeMonitorRunnable;
+        HandlerThread thread = runtimeMonitorThread;
     
-        fridaMonitorRunnable = null;
-        fridaMonitorHandler = null;
-        fridaMonitorThread = null;
+        runtimeMonitorRunnable = null;
+        runtimeMonitorHandler = null;
+        runtimeMonitorThread = null;
     
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
@@ -251,7 +250,7 @@ public class IRoot extends CordovaPlugin {
         }
     }
 
-    private boolean runFridaDetection(final String source) {
+    private boolean runRuntimeSecurityCheck(final String source) {
         try {
             if (!NativeSecurity.isAvailable()) {
                 return true; // fail closed
@@ -271,10 +270,10 @@ public class IRoot extends CordovaPlugin {
     }
 
     private boolean enforceNativeRuntimeSecurity(final String source) {
-        boolean detected = runFridaDetection(source);
+        boolean detected = runRuntimeSecurityCheck(source);
 
         if (detected) {
-            stopFridaMonitor();
+            stopRuntimeMonitor();
             stopAppForNativeSecurity();
             return true;
         }
@@ -340,19 +339,19 @@ public class IRoot extends CordovaPlugin {
             enforceNativeRuntimeSecurity("Application resume");
 
         if (!detected) {
-            startFridaMonitor();
+            startRuntimeMonitor();
         }
     }
 
     @Override
     public void onPause(boolean multitasking) {
-        stopFridaMonitor();
+        stopRuntimeMonitor();
         super.onPause(multitasking);
     }
 
     @Override
     public void onDestroy() {
-        stopFridaMonitor();
+        stopRuntimeMonitor();
         super.onDestroy();
     }
 
