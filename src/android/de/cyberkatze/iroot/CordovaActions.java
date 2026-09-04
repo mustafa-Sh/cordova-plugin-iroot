@@ -38,7 +38,6 @@ public class CordovaActions {
         ACTION_TOGETDEVICEINFO("togetDeviceInfo"),
         ACTION_IS_ROOTED_WITH_EMULATOR("isRootedWithEmulator"),
         ACTION_IS_ROOTED_WITH_BUSY_BOX_WITH_EMULATOR("isRootedWithBusyBoxWithEmulator"),
-        ACTION_DETECT_FRIDA("detectFrida");
 
         private final String name;
 
